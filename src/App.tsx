@@ -1,26 +1,49 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Navbar from "./components/Navbar";
+import { useAuth } from "./context/AuthContext";
+import Analytics from "./pages/Analytics";
 
-function App() {
+const App: React.FC = () => {
+  const { isAuthed } = useAuth();  // ✅ use isAuthed instead of user
+  const location = useLocation();
+
+  // Routes where Navbar should NOT be shown
+  const noNavbarRoutes = ["/login", "/register"];
+
+  // Show Navbar only if logged in and not on login/register pages
+  const shouldShowNavbar = isAuthed && !noNavbarRoutes.includes(location.pathname);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      {shouldShowNavbar && <Navbar />} {/* ✅ Show Navbar only when logged in */}
+      <div className={shouldShowNavbar ? "pt-16" : ""}> {/* Add top padding when Navbar is visible */}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/analytics" element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </div>
+    </>
   );
-}
+};
 
 export default App;
