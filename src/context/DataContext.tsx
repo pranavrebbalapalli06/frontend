@@ -24,7 +24,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<Expense[]>("/expenses");
+      const res = await api.get<Expense[]>("/api/expenses");
       setExpenses(res.data);
     } catch (err: any) {
       setError(err.response?.data?.msg || "Failed to fetch expenses");
@@ -36,7 +36,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addExpense = async (expense: Expense) => {
     try {
-      await api.post("/expenses", expense);
+      await api.post("/api/expenses", expense);
       await fetchExpenses(); // Refresh data after adding
     } catch (err: any) {
       setError(err.response?.data?.msg || "Failed to add expense");
@@ -47,7 +47,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateExpense = async (expense: Expense) => {
     if (!expense._id) return;
     try {
-      await api.put(`/expenses/${expense._id}`, expense);
+      await api.put(`/api/expenses/${expense._id}`, expense);
       await fetchExpenses(); // Refresh data after updating
     } catch (err: any) {
       setError(err.response?.data?.msg || "Failed to update expense");
@@ -57,7 +57,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteExpense = async (id: string) => {
     try {
-      await api.delete(`/expenses/${id}`);
+      await api.delete(`/api/expenses/${id}`);
       await fetchExpenses(); // Refresh data after deleting
     } catch (err: any) {
       setError(err.response?.data?.msg || "Failed to delete expense");

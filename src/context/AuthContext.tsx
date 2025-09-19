@@ -26,9 +26,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await api.get("/auth/me");
+        console.log('Checking auth with endpoint: /api/auth/me');
+        const res = await api.get("/api/auth/me");
+        console.log('Auth check response:', res.data);
         setUser(res.data.user);
       } catch (error) {
+        console.error('Auth check error:', error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -40,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (cred: UserCredentials) => {
     try {
-      const res = await api.post("/auth/login", cred);
+      const res = await api.post("/api/auth/login", cred);
       setUser(res.data.user);
     } catch (error) {
       throw error;
@@ -49,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (cred: UserCredentials) => {
     try {
-      await api.post("/auth/register", cred);
+      await api.post("/api/auth/register", cred);
     } catch (error) {
       throw error;
     }
@@ -57,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await api.post("/auth/logout");
+      await api.post("/api/auth/logout");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
