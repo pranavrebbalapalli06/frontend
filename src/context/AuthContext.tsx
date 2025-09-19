@@ -33,6 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
+        const token = localStorage.getItem("token");
+        if (!token) {
+          // No token → consider unauthenticated, skip /me call
+          return;
+        }
         const res = await api.get("/api/auth/me");
         setUser(res.data.user);
       } catch (error) {

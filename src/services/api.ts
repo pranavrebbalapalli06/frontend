@@ -21,6 +21,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // If no token, don't loop redirects
+      const token = localStorage.getItem("token");
+      const currentPath = window.location.pathname;
+      const isAuthPage = currentPath === "/login" || currentPath === "/register";
+      if (!token || isAuthPage) {
+        return Promise.reject(error);
+      }
       // Session expired or invalid
       localStorage.removeItem("user");
       localStorage.removeItem("token");
