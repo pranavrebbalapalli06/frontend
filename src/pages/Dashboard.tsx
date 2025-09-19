@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
-import api from "../services/api";
+import React, { useMemo, useState } from "react";
 import ExpenseForm from "../components/ExpenseForm";
 import ExpenseTable from "../components/ExpenseTable";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { Expense } from "../types";
 import { useAuth } from "../context/AuthContext";
+import { useData } from "../context/DataContext";
 
 const getMonthlyTotal = (expenses: Expense[]) => {
   const now = new Date();
@@ -38,35 +39,13 @@ const getYearlyTotal = (expenses: Expense[]) => {
 };
 
 const Dashboard: React.FC = () => {
-  const { logout } = useAuth();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { expenses, loading, error, addExpense, updateExpense, deleteExpense } = useData();
   const [editing, setEditing] = useState<Expense | null>(null);
 
   const [filterInput, setFilterInput] = useState({ category: "All", from: "", to: "" });
   const [filters, setFilters] = useState({ category: "All", from: "", to: "" });
 
   const [activeTab, setActiveTab] = useState<"add" | "update">("add");
-
-  const fetchExpenses = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get<Expense[]>("/expenses");
-      setExpenses(res.data);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
-
-  const applyFilters = () => setFilters({ ...filterInput });
-  const clearFilters = () => {
-    setFilterInput({ category: "All", from: "", to: "" });
-    setFilters({ category: "All", from: "", to: "" });
-  };
 
   const filtered = useMemo(() => {
     return expenses.filter((e) => {
@@ -78,31 +57,58 @@ const Dashboard: React.FC = () => {
     });
   }, [expenses, filters]);
 
-  const addExpense = async (exp: Expense) => {
-    await api.post("/expenses", exp);
-    await fetchExpenses();
+  const handleAddExpense = async (exp: Expense) => {
+    try {
+      await addExpense(exp);
+    } catch (err) {
+      // Error is handled in DataContext
+    }
   };
 
-  const updateExpense = async (exp: Expense) => {
+  const handleUpdateExpense = async (exp: Expense) => {
     if (!exp._id) return;
-    await api.put(`/expenses/${exp._id}`, exp);
-    setEditing(null);
-    setActiveTab("add");
-    await fetchExpenses();
+    try {
+      await updateExpense(exp);
+      setEditing(null);
+      setActiveTab("add");
+    } catch (err) {
+      // Error is handled in DataContext
+    }
   };
 
-  const removeExpense = async (id: string) => {
-    await api.delete(`/expenses/${id}`);
-    await fetchExpenses();
+  const handleRemoveExpense = async (id: string) => {
+    try {
+      await deleteExpense(id);
+    } catch (err) {
+      // Error is handled in DataContext
+    }
   };
 
   const monthlyTotal = useMemo(() => getMonthlyTotal(expenses), [expenses]);
   const weeklyTotal = useMemo(() => getWeeklyTotal(expenses), [expenses]);
   const yearlyTotal = useMemo(() => getYearlyTotal(expenses), [expenses]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading dashboard..." />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 pb-12 space-y-6">
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="flex items-center">
+              <span className="text-red-500 mr-2">⚠️</span>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
+
         {/* Totals */}
         <section>
           <div className="p-6 bg-gradient-to-r from-purple-50 to-purple-100 text-gray-800 rounded-xl shadow text-center">
@@ -144,12 +150,12 @@ const Dashboard: React.FC = () => {
 
                 <div className="p-6 bg-white rounded-xl shadow-md">
                   {activeTab === "add" ? (
-                    <ExpenseForm mode="add" onSubmit={addExpense} />
+                    <ExpenseForm mode="add" onSubmit={handleAddExpense} />
                   ) : (
                     <ExpenseForm
                       mode="update"
                       initial={editing} // Pass the expense being edited
-                      onSubmit={updateExpense}
+                      onSubmit={handleUpdateExpense}
                       onCancel={() => setEditing(null)}
                     />
                   )}
@@ -161,13 +167,7 @@ const Dashboard: React.FC = () => {
         {/* Table */}
         <section>
           <div className="bg-white rounded-xl shadow-md p-4">
-            {loading ? (
-              <div className="flex justify-center py-6">
-                <div className="w-6 h-6 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            ) : (
-              <ExpenseTable items={filtered} onEdit={(e) => { setEditing(e); setActiveTab("update"); }} onDelete={removeExpense} />
-            )}
+            <ExpenseTable items={filtered} onEdit={(e) => { setEditing(e); setActiveTab("update"); }} onDelete={handleRemoveExpense} />
           </div>
         </section>
       </main>

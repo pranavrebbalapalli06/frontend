@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import { useAuth } from "./context/AuthContext";
+import { DataProvider } from "./context/DataContext";
 import Analytics from "./pages/Analytics";
 
 const App: React.FC = () => {
@@ -27,13 +28,17 @@ const App: React.FC = () => {
             path="/"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <DataProvider>
+                  <Dashboard />
+                </DataProvider>
               </ProtectedRoute>
             }
           />
           <Route path="/analytics" element={
               <ProtectedRoute>
-                <Analytics />
+                <DataProvider>
+                  <Analytics />
+                </DataProvider>
               </ProtectedRoute>
             }
           />

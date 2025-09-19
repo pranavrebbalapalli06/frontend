@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const Login: React.FC = () => {
   const { login } = useAuth();
@@ -9,6 +10,7 @@ const Login: React.FC = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [err, setErr] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Get success message from navigation state
   React.useEffect(() => {
@@ -23,11 +25,14 @@ const Login: React.FC = () => {
     e.preventDefault();
     setErr("");
     setSuccessMsg("");
+    setLoading(true);
     try {
       await login(form);
       nav("/");
     } catch (e: any) {
       setErr(e?.response?.data?.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,9 +88,17 @@ const Login: React.FC = () => {
           {err && <p className="text-sm text-red-600 font-medium">{err}</p>}
           <button
             type="submit"
-            className="w-full py-3 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition"
+            disabled={loading}
+            className="w-full py-3 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Login
+            {loading ? (
+              <>
+                <LoadingSpinner size="sm" text="" />
+                <span className="ml-2">Logging in...</span>
+              </>
+            ) : (
+              "Login"
+            )}
           </button>
         </form>
 

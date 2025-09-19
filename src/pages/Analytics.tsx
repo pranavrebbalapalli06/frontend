@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -14,8 +14,8 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import api from "../services/api";
-import { Expense } from "../types";
+import LoadingSpinner from "../components/LoadingSpinner";
+import { useData } from "../context/DataContext";
 
 type TimeFilter = "all" | "lastMonth" | "last3Months" | "last6Months" | "thisYear" | "custom";
 type ChartType = "bar" | "pie" | "line";
@@ -53,31 +53,13 @@ const formatYAxis = (value: number) => {
 };
 
 const Analytics: React.FC = () => {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { expenses, loading, error } = useData();
   
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [customDateRange, setCustomDateRange] = useState({ from: "", to: "" });
   const [chartType, setChartType] = useState<ChartType>("bar");
-
-  // Fetch expenses data
-  const fetchExpenses = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get<Expense[]>("/expenses");
-      setExpenses(res.data);
-    } catch (error) {
-      console.error("Failed to fetch expenses:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
 
   // Filter expenses based on current filters
   const filteredExpenses = useMemo(() => {
@@ -194,8 +176,8 @@ const Analytics: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading analytics..." />
       </div>
     );
   }
@@ -204,6 +186,16 @@ const Analytics: React.FC = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Analytics Dashboard</h1>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="flex items-center">
+              <span className="text-red-500 mr-2">⚠️</span>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

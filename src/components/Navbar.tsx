@@ -2,14 +2,27 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Menu, X } from "lucide-react"; // Icons for hamburger & close
+import LoadingSpinner from "./LoadingSpinner";
 
 const Navbar: React.FC = () => {
   const { logout, user } = useAuth(); // Assuming user has { name, email }
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   const toggleMenu = () => setMenuOpen((prev) => !prev);
   const toggleProfile = () => setProfileOpen((prev) => !prev);
+
+  const handleLogout = async () => {
+    setLogoutLoading(true);
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setLogoutLoading(false);
+    }
+  };
 
   const firstLetter = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
@@ -37,10 +50,18 @@ const Navbar: React.FC = () => {
             Analytics
           </Link>
           <button
-            onClick={logout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+            onClick={handleLogout}
+            disabled={logoutLoading}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Log out
+            {logoutLoading ? (
+              <>
+                <LoadingSpinner size="sm" text="" />
+                <span>Logging out...</span>
+              </>
+            ) : (
+              "Log out"
+            )}
           </button>
         </div>
 
@@ -61,12 +82,20 @@ const Navbar: React.FC = () => {
           </Link>
           <button
             onClick={() => {
-              logout();
+              handleLogout();
               toggleMenu();
             }}
-            className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+            disabled={logoutLoading}
+            className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Log out
+            {logoutLoading ? (
+              <>
+                <LoadingSpinner size="sm" text="" />
+                <span>Logging out...</span>
+              </>
+            ) : (
+              "Log out"
+            )}
           </button>
 
           {/* Profile Circle */}

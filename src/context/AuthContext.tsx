@@ -8,51 +8,72 @@ type UserInfo = {
 };
 
 type AuthContextType = {
-  token: string | null;
-  user: UserInfo | null;  // Added user info
+  user: UserInfo | null;
   login: (cred: UserCredentials) => Promise<void>;
   register: (cred: UserCredentials) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthed: boolean;
+  loading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Whenever token changes, fetch user info or clear it
+  // Check authentication status on app load
   useEffect(() => {
-    if (token) {
-      localStorage.setItem("token", token);
-      // Fetch user details when token exists
-      api.get("/auth/me")
-        .then((res: { data: { user: UserInfo } }) => setUser(res.data.user))
-        .catch(() => setUser(null));
-    } else {
-      localStorage.removeItem("token");
-      setUser(null);
-    }
-  }, [token]);
+    const checkAuth = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        setUser(res.data.user);
+      } catch (error) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const login = async (cred: UserCredentials) => {
-    const res = await api.post("/auth/login", cred);
-    setToken(res.data.token);
-    setUser(res.data.user); // Save user info on login
+    try {
+      const res = await api.post("/auth/login", cred);
+      setUser(res.data.user);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const register = async (cred: UserCredentials) => {
-    await api.post("/auth/register", cred);
+    try {
+      await api.post("/auth/register", cred);
+    } catch (error) {
+      throw error;
+    }
   };
 
-  const logout = () => {
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, register, logout, isAuthed: !!token }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      register, 
+      logout, 
+      isAuthed: !!user,
+      loading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

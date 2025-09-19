@@ -1,21 +1,26 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const Register: React.FC = () => {
   const { register } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr("");
+    setLoading(true);
     try {
       await register(form);
       nav("/login", { state: { message: "Registered successfully! Please login." } });
     } catch (error: any) {
       setErr(error?.response?.data?.message || "Something went wrong, please try again.");
+    } finally {
+      setLoading(false);
     }
   };
   return (
@@ -64,9 +69,17 @@ const Register: React.FC = () => {
           {err && <small className="text-red-500">{err}</small>}
           <button
             type="submit"
-            className="w-full bg-indigo-500 text-white py-2 rounded-lg font-semibold hover:bg-indigo-600 transition"
+            disabled={loading}
+            className="w-full bg-indigo-500 text-white py-2 rounded-lg font-semibold hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Sign Up
+            {loading ? (
+              <>
+                <LoadingSpinner size="sm" text="" />
+                <span className="ml-2">Creating account...</span>
+              </>
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </form>
 
