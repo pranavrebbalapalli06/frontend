@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "https://spedilo-main.onrender.com",
+  baseURL: "https://spedilo-main.onrender.com",
   withCredentials: true, // Enable cookies
 });
 

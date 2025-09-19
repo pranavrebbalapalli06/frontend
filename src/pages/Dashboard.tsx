@@ -3,7 +3,6 @@ import ExpenseForm from "../components/ExpenseForm";
 import ExpenseTable from "../components/ExpenseTable";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { Expense } from "../types";
-import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 
 const getMonthlyTotal = (expenses: Expense[]) => {
@@ -41,11 +40,10 @@ const getYearlyTotal = (expenses: Expense[]) => {
 const Dashboard: React.FC = () => {
   const { expenses, loading, error, addExpense, updateExpense, deleteExpense } = useData();
   const [editing, setEditing] = useState<Expense | null>(null);
-
-  const [filterInput, setFilterInput] = useState({ category: "All", from: "", to: "" });
-  const [filters, setFilters] = useState({ category: "All", from: "", to: "" });
-
   const [activeTab, setActiveTab] = useState<"add" | "update">("add");
+
+  // Simple filter for displaying all expenses
+  const filters = { category: "All", from: "", to: "" };
 
   const filtered = useMemo(() => {
     return expenses.filter((e) => {
