@@ -18,20 +18,25 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check authentication status on app load
+  // ✅ Check authentication status on app load
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log('Checking auth with endpoint: /api/auth/me');
+        // Prefer user from localStorage to avoid flash
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
         const res = await api.get("/api/auth/me");
-        console.log('Auth check response:', res.data);
         setUser(res.data.user);
       } catch (error) {
-        console.error('Auth check error:', error);
+        console.error("Auth check error:", error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -41,23 +46,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
+  // ✅ Login
   const login = async (cred: UserCredentials) => {
     try {
       const res = await api.post("/api/auth/login", cred);
+      // store token and user
+      if (res.data?.token) {
+        localStorage.setItem("token", res.data.token);
+      }
       setUser(res.data.user);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
     } catch (error) {
+      console.error("Login error:", error);
       throw error;
     }
   };
 
+  // ✅ Register
   const register = async (cred: UserCredentials) => {
     try {
       await api.post("/api/auth/register", cred);
     } catch (error) {
+      console.error("Register error:", error);
       throw error;
     }
   };
 
+  // ✅ Logout
   const logout = async () => {
     try {
       await api.post("/api/auth/logout");
@@ -65,18 +80,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Logout error:", error);
     } finally {
       setUser(null);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
     }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      register, 
-      logout, 
-      isAuthed: !!user,
-      loading 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        isAuthed: !!user,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
