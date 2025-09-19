@@ -171,16 +171,17 @@ const Analytics: React.FC = () => {
         values[p.name] = (p.value as number) || 0;
       }
     });
+    type TooltipRow = { key: string; val: number };
     const ordered = ["Food", "Travel", "Shopping", "Other"];
-    const lines = ordered
+    const lines: TooltipRow[] = ordered
       .filter((k) => values[k] !== undefined)
-      .map((k) => ({ key: k, val: values[k] }));
+      .map((k) => ({ key: k, val: values[k] || 0 }));
     // If categories are custom, fall back to whatever came in
-    const fallback = payload
+    const fallback: TooltipRow[] = payload
       .filter((p: any) => typeof p?.name === "string")
       .map((p: any) => ({ key: p.name as string, val: (p.value as number) || 0 }));
 
-    const list = lines.length > 0 ? lines : fallback;
+    const list: TooltipRow[] = lines.length > 0 ? lines : fallback;
 
     return (
       <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: 10 }}>
