@@ -137,6 +137,63 @@ const Analytics: React.FC = () => {
     });
   }, [filteredExpenses]);
 
+  // Determine if current view is a single month (e.g., lastMonth)
+  const isSingleMonthView = useMemo(() => {
+    return timeFilter === "lastMonth" || barChartData.length === 1;
+  }, [timeFilter, barChartData.length]);
+
+  // Build grouped category data for a single month (4 bars: Food, Travel, Shopping, Other)
+  const singleMonthCategoryData = useMemo(() => {
+    if (!isSingleMonthView) return [] as { category: string; value: number }[];
+    const targetCategories = ["Food", "Travel", "Shopping", "Other"];
+    const totals: Record<string, number> = {};
+    filteredExpenses.forEach((e) => {
+      const name = (e.category || "Other").toString();
+      // Map to one of the 4 buckets by simple name matching (case-insensitive)
+      const normalized = name.toLowerCase();
+      let bucket = "Other";
+      if (normalized.includes("food")) bucket = "Food";
+      else if (normalized.includes("travel")) bucket = "Travel";
+      else if (normalized.includes("shop")) bucket = "Shopping";
+      totals[bucket] = (totals[bucket] || 0) + e.amount;
+    });
+    return targetCategories.map((cat) => ({ category: cat, value: totals[cat] || 0 }));
+  }, [filteredExpenses, isSingleMonthView]);
+
+  // Custom tooltip for multi-month stacked bars
+  const MonthlyStackedTooltip: React.FC<any> = ({ active, label, payload }) => {
+    if (!active || !payload || payload.length === 0) return null;
+    const monthLabel = label; // already like "Sep 2025"
+    // Build a map of category -> value
+    const values: Record<string, number> = {};
+    payload.forEach((p: any) => {
+      if (p && p.name) {
+        values[p.name] = (p.value as number) || 0;
+      }
+    });
+    const ordered = ["Food", "Travel", "Shopping", "Other"];
+    const lines = ordered
+      .filter((k) => values[k] !== undefined)
+      .map((k) => ({ key: k, val: values[k] }));
+    // If categories are custom, fall back to whatever came in
+    const fallback = payload
+      .filter((p: any) => typeof p?.name === "string")
+      .map((p: any) => ({ key: p.name as string, val: (p.value as number) || 0 }));
+
+    const list = lines.length > 0 ? lines : fallback;
+
+    return (
+      <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: 10 }}>
+        <div style={{ fontWeight: 600, color: "#111827", marginBottom: 6 }}>{monthLabel}</div>
+        {list.map((row, idx) => (
+          <div key={idx} style={{ fontSize: 12, color: "#374151" }}>
+            {row.key.toLowerCase()} : {formatCurrency(row.val)}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Prepare data for pie chart (category distribution)
   const pieChartData = useMemo(() => {
     const categoryTotals: Record<string, number> = {};
@@ -304,41 +361,65 @@ const Analytics: React.FC = () => {
               {chartType === "line" && "Daily Expense Trend"}
             </h2>
             <div className="w-full" style={{ height: 400 }}>
-              {chartType === "bar" && barChartData.length > 0 ? (
+              {chartType === "bar" && (isSingleMonthView ? singleMonthCategoryData.length > 0 : barChartData.length > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis 
-                      dataKey="month" 
-                      tick={{ fontSize: 12, fill: '#6B7280' }}
-                      axisLine={{ stroke: '#D1D5DB' }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12, fill: '#6B7280' }}
-                      axisLine={{ stroke: '#D1D5DB' }}
-                      tickFormatter={formatYAxis}
-                    />
-                    <Tooltip 
-                      formatter={(value: number) => [formatCurrency(value), 'Amount']}
-                      labelStyle={{ color: '#374151' }}
-                      contentStyle={{ 
-                        backgroundColor: '#F9FAFB', 
-                        border: '1px solid #E5E7EB',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                      }}
-                    />
-                    <Legend />
-                    {pieChartData.map((category, index) => (
-                      <Bar 
-                        key={category.name} 
-                        dataKey={category.name} 
-                        stackId="a" 
-                        fill={COLORS[index % COLORS.length]}
-                        radius={[0, 0, 0, 0]}
+                  {isSingleMonthView ? (
+                    <BarChart data={singleMonthCategoryData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis 
+                        dataKey="category" 
+                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        axisLine={{ stroke: '#D1D5DB' }}
                       />
-                    ))}
-                  </BarChart>
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        axisLine={{ stroke: '#D1D5DB' }}
+                        tickFormatter={formatYAxis}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value), 'Amount']}
+                        labelStyle={{ color: '#374151' }}
+                        contentStyle={{ 
+                          backgroundColor: '#F9FAFB', 
+                          border: '1px solid #E5E7EB',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
+                      <Bar dataKey="value">
+                        {singleMonthCategoryData.map((entry, index) => (
+                          <Cell key={`cell-sm-${entry.category}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  ) : (
+                    <BarChart data={barChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis 
+                        dataKey="month" 
+                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        axisLine={{ stroke: '#D1D5DB' }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        axisLine={{ stroke: '#D1D5DB' }}
+                        tickFormatter={formatYAxis}
+                      />
+                      <Tooltip 
+                        content={<MonthlyStackedTooltip />}
+                      />
+                      <Legend />
+                      {pieChartData.map((category, index) => (
+                        <Bar 
+                          key={category.name} 
+                          dataKey={category.name} 
+                          stackId="a" 
+                          fill={COLORS[index % COLORS.length]}
+                          radius={[0, 0, 0, 0]}
+                        />
+                      ))}
+                    </BarChart>
+                  )}
                 </ResponsiveContainer>
               ) : chartType === "pie" && pieChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
